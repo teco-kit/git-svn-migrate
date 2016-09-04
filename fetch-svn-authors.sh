@@ -91,15 +91,12 @@ until [[ -z "$1" ]]; do
   esac
 
   case $parameter in
-    u )            url_file=$value;;
-    url-file )     url_file=$value;;
-    d )            destination=$value;;
-    destination )  destination=$value;;
+    u|url-file )     url_file=$value;;
+    d|destination )  destination=$value;;
 
-    h )            echo $help | less >&2; exit;;
-    help )         echo $help | less >&2; exit;;
+    h|help )         echo -e $help | less >&2; exit;;
 
-    * )            echo "Unknown option: $option\n$usage" >&2; exit 1;;
+    * )            echo -e "Unknown option: $option\n$usage" >&2; exit 1;;
   esac
 
   # Remove the processed parameter.
@@ -108,20 +105,20 @@ done
 
 # Check for required parameters.
 if [[ $url_file == '' ]]; then
-  echo $usage >&2;
+  echo -e $usage >&2;
   exit 1;
 fi
 # Check for valid file.
 if [[ ! -f $url_file ]]; then
   echo "Specified URL file \"$url_file\" does not exist or is not a file." >&2;
-  echo $usage >&2;
+  echo -e $usage >&2;
   exit 1;
 fi
 
 
 # Process each URL in the repository list.
-tmp_file="tmp-authors-transform.txt";
-while read line
+tmp_file="/tmp/tmp-authors-transform-$RANDOM";
+while IFS= read -r line
 do
   # Check for 2-field format:  Name [tab] URL
   name=`echo $line | awk '{print $1}'`;
@@ -132,18 +129,21 @@ do
     name=`basename $url`;
   fi
   # Process the log of each Subversion URL.
-  echo "Processing \"$name\" repository at $url..." >&2;
+  echo "Processing \"$name\" repository at $url" >&2;
   /bin/echo -n "  " >&2;
   svn log -q $url | awk -F '|' '/^r/ {sub("^ ", "", $2); sub(" $", "", $2); print $2" = "$2" <"$2">"}' | sort -u >> $tmp_file;
   echo "Done." >&2;
-done < $url_file
+done < <(grep -ve '^$' -e '^[#;]' "$url_file")
+
+# Sort unique lines.
+cat $tmp_file | sort -u -o $tmp_file;
 
 # Process temp file one last time to show results.
 if [[ $destination == '' ]]; then
   # Display on standard output.
-  cat $tmp_file | sort -u;
+  cat $tmp_file;
 else
   # Output to the specified destination file.
-  cat $tmp_file | sort -u > $destination;
+  cp $tmp_file $destination;
 fi
 unlink $tmp_file;
