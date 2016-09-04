@@ -12,8 +12,8 @@ gitinit_params='';
 gitsvn_params='';
 git_author='Armando Lüscher <armando@noplanman.ch>';
 
-git_cmd='git';
-printf_cmd='echo';
+_git='git';
+_echo='echo';
 
 stdout_file="$dir/log/`date +%Y%m%d%H%M%S`.std.out";
 stderr_file="$dir/log/`date +%Y%m%d%H%M%S`.std.err";
@@ -102,7 +102,7 @@ quiet_git() {
 echo_done() {
   msg="${1:-Done.}";
   echo "   $msg" >&2;
-  if [[ $printf_cmd == "echo" ]]; then
+  if [[ $_echo == "echo" ]]; then
     echo >&2;
   fi
 }
@@ -141,7 +141,7 @@ until [[ -z "$1" ]]; do
     d|destination )   destination=$value;;
     i|ignore-file )   ignore_file=$value;;
     f|force )         force=1;;
-    q|quiet )         git_cmd="quiet_git"; printf_cmd="printf";;
+    q|quiet )         _git="quiet_git"; _echo="echo -n";;
     shared )          if [[ $value == '' ]]; then
                         gitinit_params="--shared";
                       else
@@ -238,13 +238,13 @@ do
   if [[ $skipping -eq 0 ]]; then
     mkdir -p "$destination_git";
     cd "$destination_git";
-    $git_cmd init --bare $gitinit_params $gitsvn_params;
-    $git_cmd symbolic-ref HEAD refs/heads/trunk $gitsvn_params;
+    $_git init --bare $gitinit_params $gitsvn_params;
+    $_git symbolic-ref HEAD refs/heads/trunk $gitsvn_params;
 
     # Clone the original Subversion repository to a temp repository.
     cd "$pwd";
-    $printf_cmd " - Cloning repository..." >&2;
-    $git_cmd svn clone "$url" -A "$authors_file" --authors-prog="$dir/svn-lookup-author.sh" --stdlayout --no-minimize-url --log-window-size=10000000 --quiet "$tmp_destination" $gitsvn_params;
+    $_echo " - Cloning repository..." >&2;
+    $_git svn clone "$url" -A "$authors_file" --authors-prog="$dir/svn-lookup-author.sh" --stdlayout --no-minimize-url --log-window-size=10000000 --quiet "$tmp_destination" $gitsvn_params;
     if [[ $? -eq 0 ]]; then
       echo_done;
     else
@@ -255,47 +255,47 @@ do
 
   if [[ $skipping -eq 0 ]]; then
     # Create .gitignore file.
-    $printf_cmd " - svn:ignore => .gitignore file..." >&2;
+    $_echo " - svn:ignore => .gitignore file..." >&2;
     if [[ $ignore_file != '' ]]; then
       cp "$ignore_file" "$tmp_destination/.gitignore";
     fi
     cd "$tmp_destination";
-    $git_cmd svn show-ignore --id trunk >> .gitignore;
-    $git_cmd add .gitignore;
-    $git_cmd commit --author="$git_author" -m 'Convert svn:ignore properties to .gitignore.' $gitsvn_params;
+    $_git svn show-ignore --id trunk >> .gitignore;
+    $_git add .gitignore;
+    $_git commit --author="$git_author" -m 'Convert svn:ignore properties to .gitignore.' $gitsvn_params;
     #git commit --author="git-svn-migrate <nobody@example.org>" -m 'Convert svn:ignore properties to .gitignore.';
     echo_done;
 
     # Push to final bare repository and remove temp repository.
-    $printf_cmd " - Pushing to new bare repository..." >&2;
-    $git_cmd remote add bare "$destination_git";
-    $git_cmd config remote.bare.push 'refs/remotes/*:refs/heads/*';
-    $git_cmd push bare $gitsvn_params;
+    $_echo " - Pushing to new bare repository..." >&2;
+    $_git remote add bare "$destination_git";
+    $_git config remote.bare.push 'refs/remotes/*:refs/heads/*';
+    $_git push bare $gitsvn_params;
     # Push the .gitignore commit that resides on master.
-    $git_cmd push bare master:trunk $gitsvn_params;
+    $_git push bare master:trunk $gitsvn_params;
     cd "$pwd";
     rm -r "$tmp_destination";
     echo_done;
 
-    $printf_cmd " - Fix branches..." >&2;
+    $_echo " - Fix branches..." >&2;
     # Rename Subversion's "trunk" branch to Git's standard "master" branch.
     cd "$destination_git";
-    $git_cmd branch -m trunk master;
+    $_git branch -m trunk master;
     # Remove bogus branches of the form "name@REV".
-    $git_cmd for-each-ref --format='%(refname)' refs/heads | grep '@[0-9][0-9]*' | cut -d / -f 3- |
+    $_git for-each-ref --format='%(refname)' refs/heads | grep '@[0-9][0-9]*' | cut -d / -f 3- |
     while read ref
     do
-      $git_cmd branch -D "$ref";
+      $_git branch -D "$ref";
     done
     echo_done;
 
     # Convert git-svn tag branches to proper tags.
-    $printf_cmd " - SVN tags => git tags..." >&2;
-    $git_cmd for-each-ref --format='%(refname)' refs/heads/tags | cut -d / -f 4 |
+    $_echo " - SVN tags => git tags..." >&2;
+    $_git for-each-ref --format='%(refname)' refs/heads/tags | cut -d / -f 4 |
     while read ref
     do
-      $git_cmd tag -a "$ref" -m "Convert \"$ref\" to a proper git tag." "refs/heads/tags/$ref";
-      $git_cmd branch -D "tags/$ref";
+      $_git tag -a "$ref" -m "Convert \"$ref\" to a proper git tag." "refs/heads/tags/$ref";
+      $_git branch -D "tags/$ref";
     done
     echo_done;
     echo >&2;
