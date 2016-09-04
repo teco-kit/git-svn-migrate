@@ -132,7 +132,6 @@ until [[ -z "$1" ]]; do
       value='';
     else
       value=$2;
-      shift;
     fi
   fi
 
