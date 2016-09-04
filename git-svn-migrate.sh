@@ -15,17 +15,17 @@ git_author='Armando Lüscher <armando@noplanman.ch>';
 git_cmd='git';
 printf_cmd='echo';
 
-stdout_file="$dir/log/$(date +%Y%m%d%H%M%S).std.out";
-stderr_file="$dir/log/$(date +%Y%m%d%H%M%S).std.err";
+stdout_file="$dir/log/`date +%Y%m%d%H%M%S`.std.out";
+stderr_file="$dir/log/`date +%Y%m%d%H%M%S`.std.err";
 
-usage=$(cat <<EOF_USAGE
+usage=`cat <<EOF_USAGE
 USAGE: $script --url-file=<filename> --authors-file=<filename> [destination folder]
 \n
 \nFor more info, see: $script --help
 EOF_USAGE
-);
+`;
 
-help=$(cat <<EOF_HELP
+help=`cat <<EOF_HELP
 NAME
 \n\t$script - Migrates Subversion repositories to Git
 \n
@@ -91,7 +91,7 @@ NAME
 \n\tfetch-svn-authors.sh
 \n\tsvn-lookup-author.sh
 EOF_HELP
-);
+`;
 
 # Truly quiet git execution. (idea from http://stackoverflow.com/a/8944284)
 quiet_git() {
@@ -220,8 +220,8 @@ do
 
   # Process each Subversion URL.
   echo >&2;
-  echo "( $cnt_cur / $cnt_total ) At $(date)..." >&2;
   echo "Processing \"$name\" repository at $url" >&2;
+  echo "( $cnt_cur / $cnt_total ) At `date`..." >&2;
 
   # Init the final bare repository.
   # Ensure temporary repository location is empty.
@@ -294,10 +294,10 @@ do
     done
     echo_done;
 
-    echo "Conversion of \"$name\" completed at $(date)." >&2;
+    echo "Conversion of \"$name\" completed at `date`." >&2;
     ((cnt_pass++));
   else
-    echo "Conversion of \"$name\" skipped at $(date)." >&2;
+    echo "Conversion of \"$name\" skipped at `date`." >&2;
     ((cnt_skip++));
   fi
 done < <(grep -ve '^$' -e '^[#;]' "$url_file")
