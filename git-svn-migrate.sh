@@ -218,21 +218,27 @@ do
     name=`basename $url`;
   fi
 
+  # The directory where the new git repository is going.
+  destination_git="$destination/$name.git";
+
   # Process each Subversion URL.
   echo >&2;
-  echo "Processing \"$name\" repository at $url" >&2;
   echo "( $cnt_cur / $cnt_total ) At `date`..." >&2;
+  echo "Processing \"$name\" repository:" >&2;
+  echo " < $url" >&2;
+  echo " > $destination_git" >&2;
+  echo >&2;
 
   # Init the final bare repository.
   # Ensure temporary repository location is empty.
-  if [[ -e "$destination/$name.git" ]] && [[ $force -eq 0 ]]; then
-    echo " - Repository location \"$destination/$name.git\" already exists. Skipping." >&2;
+  if [[ -e "$destination_git" ]] && [[ $force -eq 0 ]]; then
+    echo " - Repository location \"$destination_git\" already exists. Skipping." >&2;
     skipping=1;
   fi
 
   if [[ $skipping -eq 0 ]]; then
-    mkdir -p "$destination/$name.git";
-    cd "$destination/$name.git";
+    mkdir -p "$destination_git";
+    cd "$destination_git";
     $git_cmd init --bare $gitinit_params $gitsvn_params;
     $git_cmd symbolic-ref HEAD refs/heads/trunk $gitsvn_params;
 
@@ -250,7 +256,7 @@ do
 
   if [[ $skipping -eq 0 ]]; then
     # Create .gitignore file.
-    $printf_cmd " - Converting svn:ignore properties into a .gitignore file..." >&2;
+    $printf_cmd " - svn:ignore => .gitignore file..." >&2;
     if [[ $ignore_file != '' ]]; then
       cp "$ignore_file" "$tmp_destination/.gitignore";
     fi
@@ -263,7 +269,7 @@ do
 
     # Push to final bare repository and remove temp repository.
     $printf_cmd " - Pushing to new bare repository..." >&2;
-    $git_cmd remote add bare "$destination/$name.git";
+    $git_cmd remote add bare "$destination_git";
     $git_cmd config remote.bare.push 'refs/remotes/*:refs/heads/*';
     $git_cmd push bare $gitsvn_params;
     # Push the .gitignore commit that resides on master.
@@ -274,7 +280,7 @@ do
 
     $printf_cmd " - Fix branches..." >&2;
     # Rename Subversion's "trunk" branch to Git's standard "master" branch.
-    cd "$destination/$name.git";
+    cd "$destination_git";
     $git_cmd branch -m trunk master;
     # Remove bogus branches of the form "name@REV".
     $git_cmd for-each-ref --format='%(refname)' refs/heads | grep '@[0-9][0-9]*' | cut -d / -f 3- |
@@ -285,7 +291,7 @@ do
     echo_done;
 
     # Convert git-svn tag branches to proper tags.
-    $printf_cmd " - Converting svn tag directories to proper git tags..." >&2;
+    $printf_cmd " - SVN tags => git tags..." >&2;
     $git_cmd for-each-ref --format='%(refname)' refs/heads/tags | cut -d / -f 4 |
     while read ref
     do
@@ -293,10 +299,12 @@ do
       $git_cmd branch -D "tags/$ref";
     done
     echo_done;
+    echo >&2;
 
     echo "Conversion of \"$name\" completed at `date`." >&2;
     ((cnt_pass++));
   else
+    echo >&2;
     echo "Conversion of \"$name\" skipped at `date`." >&2;
     ((cnt_skip++));
   fi
