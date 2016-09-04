@@ -116,14 +116,10 @@ until [[ -z "$1" ]]; do
   fi
 
   case $parameter in
-    u )               url_file=$value;;
-    url-file )        url_file=$value;;
-    a )               authors_file=$value;;
-    authors-file )    authors_file=$value;;
-    d )               destination=$value;;
-    destination )     destination=$value;;
-    i )               ignore_file=$value;;
-    ignore-file )     ignore_file=$value;;
+    u|url-file )      url_file=$value;;
+    a|authors-file )  authors_file=$value;;
+    d|destination )   destination=$value;;
+    i|ignore-file )   ignore_file=$value;;
     shared )          if [[ $value == '' ]]; then
                         gitinit_params="--shared";
                       else
@@ -131,8 +127,7 @@ until [[ -z "$1" ]]; do
                       fi
                       ;;
 
-    h )               echo -e $help | less >&2; exit;;
-    help )            echo -e $help | less >&2; exit;;
+    h|help )          echo -e $help | less >&2; exit;;
 
     * ) # Pass any unknown parameters to git-svn directly.
         if [[ $value == '' ]]; then
