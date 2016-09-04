@@ -141,6 +141,7 @@ until [[ -z "$1" ]]; do
     a|authors-file )  authors_file=$value;;
     d|destination )   destination=$value;;
     i|ignore-file )   ignore_file=$value;;
+    f|force )         force=1;;
     q|quiet )         git_cmd="quiet_git"; printf_cmd="printf";;
     shared )          if [[ $value == '' ]]; then
                         gitinit_params="--shared";
@@ -188,17 +189,22 @@ mkdir -p "$destination";
 destination=`cd "$destination"; pwd`; #Absolute path.
 
 # Ensure temporary repository location is empty.
-if [[ -e $tmp_destination ]]; then
+if [[ -e $tmp_destination ]] && [[ $force -eq 0 ]]; then
   echo "Temporary repository location \"$tmp_destination\" already exists. Exiting." >&2;
   exit 1;
 fi
 
-cnt_pass=0
-cnt_skip=0
+# http://stackoverflow.com/a/114861
+cnt_total=`grep -cve '^[;#]' "$url_file"`;
+cnt_cur=0;
+cnt_pass=0;
+cnt_skip=0;
 
-while read line
+while IFS= read -r line
 do
-  skipping=0
+  ((cnt_cur++));
+
+  skipping=0;
 
   # Check for 2-field format:  Name [tab] URL
   name=`echo $line | awk '{print $1}'`;
@@ -212,24 +218,32 @@ do
 
   # Process each Subversion URL.
   echo >&2;
-  echo "At $(date)..." >&2;
-  echo "Processing \"$name\" repository at $url..." >&2;
+  echo "( $cnt_cur / $cnt_total ) At $(date)..." >&2;
+  echo "Processing \"$name\" repository at $url" >&2;
 
   # Init the final bare repository.
-  mkdir "$destination/$name.git";
-  cd "$destination/$name.git";
-  $git_cmd init --bare $gitinit_params $gitsvn_params;
-  $git_cmd symbolic-ref HEAD refs/heads/trunk $gitsvn_params;
-
-  # Clone the original Subversion repository to a temp repository.
-  cd "$pwd";
-  $printf_cmd " - Cloning repository..." >&2;
-  $git_cmd svn clone "$url" -A "$authors_file" --authors-prog="$dir/svn-lookup-author.sh" --stdlayout --quiet "$tmp_destination" $gitsvn_params;
-  if [[ $? -eq 0 ]]; then
-    echo_done;
-  else
+  # Ensure temporary repository location is empty.
+  if [[ -e "$destination/$name.git" ]] && [[ $force -eq 0 ]]; then
+    echo " - Repository location \"$destination/$name.git\" already exists. Skipping." >&2;
     skipping=1;
-    echo_done "Failed.";
+  fi
+
+  if [[ $skipping -eq 0 ]]; then
+    mkdir -p "$destination/$name.git";
+    cd "$destination/$name.git";
+    $git_cmd init --bare $gitinit_params $gitsvn_params;
+    $git_cmd symbolic-ref HEAD refs/heads/trunk $gitsvn_params;
+
+    # Clone the original Subversion repository to a temp repository.
+    cd "$pwd";
+    $printf_cmd " - Cloning repository..." >&2;
+    $git_cmd svn clone "$url" -A "$authors_file" --authors-prog="$dir/svn-lookup-author.sh" --stdlayout --quiet "$tmp_destination" $gitsvn_params;
+    if [[ $? -eq 0 ]]; then
+      echo_done;
+    else
+      skipping=1;
+      echo_done "Failed.";
+    fi
   fi
 
   if [[ $skipping -eq 0 ]]; then
@@ -279,17 +293,19 @@ do
     echo_done;
 
     echo "Conversion of \"$name\" completed at $(date)." >&2;
-    ((cnt_pass++))
+    ((cnt_pass++));
   else
     echo "Conversion of \"$name\" skipped at $(date)." >&2;
-    ((cnt_skip++))
+    ((cnt_skip++));
   fi
-done < "$url_file"
+done < <(grep -v '^[;#]' "$url_file")
+# http://stackoverflow.com/a/8197412
+# http://mywiki.wooledge.org/BashFAQ/024 (ProcessSubstitution)
 
 echo >&2;
-echo "All done! ($cnt_pass / $(( cnt_pass + cnt_skip ))) passed)" >&2
+echo "All done! ( $cnt_pass / $cnt_total passed )" >&2
 echo >&2;
 if [[ $cnt_skip -ne 0 ]]; then
-  echo "($cnt_skip conversions were skipped, check the logs)" >&2
+  echo "($cnt_skip conversions were skipped, check the output and logs)" >&2
+  echo >&2;
 fi
-echo >&2;
