@@ -46,19 +46,24 @@ NAME
 \n\t\tSpecify the file containing the Subversion repository list.
 \n
 \n\t-a=<filename>, -a <filename>,
-\n\t--authors-file=[filename], --authors-file [filename]
+\n\t--authors-file=<filename>, --authors-file <filename>
 \n\t\tSpecify the file containing the authors transformation data.
 \n
-\n\t-d=<folder>, -d <folder>,
-\n\t--destination=<folder>, --destination <folder>
+\n\t[-d=]<folder>, [-d ]<folder>,
+\n\t[--destination=]<folder>, [--destination ]<folder>
 \n\t\tThe directory where the new Git repositories should be
 \n\t\tsaved. Defaults to the current directory.
+\n\t\tThis parameter can also be passed without the param flag.
 \n
 \n\t-i=<filename>, -i <filename>,
 \n\t--ignore-file=<filename>, --ignore-file <filename>
 \n\t\tThe location of a .gitignore file to add to all repositories.
 \n
-\n\t--quiet
+\n\t-f, --force
+\n\t\tForce repository creation, even if destination folders exist.
+\n\t\tBe sure about this, it can not be undone! You have been warned.
+\n
+\n\t-q, --quiet
 \n\t\tBy default this script is rather verbose since it outputs each revision
 \n\t\tnumber as it is processed from Subversion. Since conversion can sometimes
 \n\t\ttake hours to complete, this output can be useful. However, this option
@@ -88,6 +93,7 @@ NAME
 \n\t$script -u my-repository-list.txt -a authors-file.txt /var/git
 \n
 \nSEE ALSO
+\n\tgit-svn-migrate-nohup.sh
 \n\tfetch-svn-authors.sh
 \n\tsvn-lookup-author.sh
 EOF_HELP
@@ -244,7 +250,7 @@ do
     # Clone the original Subversion repository to a temp repository.
     cd "$pwd";
     $_echo " - Cloning repository..." >&2;
-    $_git svn clone "$url" -A "$authors_file" --authors-prog="$dir/svn-lookup-author.sh" --stdlayout --no-minimize-url --log-window-size=10000000 --quiet "$tmp_destination" $gitsvn_params;
+    $_git svn clone "$url" -A "$authors_file" --authors-prog="$dir/svn-lookup-author.sh" --stdlayout --quiet "$tmp_destination" $gitsvn_params;
     if [[ $? -eq 0 ]]; then
       echo_done;
     else
