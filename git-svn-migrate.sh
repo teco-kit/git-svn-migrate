@@ -5,6 +5,19 @@
 
 script=`basename $0`;
 dir=`pwd`/`dirname $0`;
+
+# Set defaults for any optional parameters or arguments.
+destination='.';
+gitinit_params='';
+gitsvn_params='';
+git_author='Armando Lüscher <armando@noplanman.ch>';
+
+git_cmd='git';
+printf_cmd='echo';
+
+stdout_file="$dir/log/$(date +%Y%m%d%H%M%S).std.out";
+stderr_file="$dir/log/$(date +%Y%m%d%H%M%S).std.err";
+
 usage=$(cat <<EOF_USAGE
 USAGE: $script --url-file=<filename> --authors-file=<filename> [destination folder]
 \n
@@ -80,12 +93,19 @@ NAME
 EOF_HELP
 );
 
+# Truly quiet git execution. (idea from http://stackoverflow.com/a/8944284)
+quiet_git() {
+  return `git "$@" </dev/null >>$stdout_file 2>>$stderr_file`;
+}
 
-# Set defaults for any optional parameters or arguments.
-destination='.';
-gitinit_params='';
-gitsvn_params='';
-git_author='Armando Lüscher <armando@noplanman.ch>';
+# Output the "Done!" message after a step has completed.
+echo_done() {
+  msg="${1:-Done.}";
+  echo "   $msg" >&2;
+  if [[ $printf_cmd == "echo" ]]; then
+    echo >&2;
+  fi
+}
 
 # Process parameters.
 until [[ -z "$1" ]]; do
@@ -121,6 +141,7 @@ until [[ -z "$1" ]]; do
     a|authors-file )  authors_file=$value;;
     d|destination )   destination=$value;;
     i|ignore-file )   ignore_file=$value;;
+    q|quiet )         git_cmd="quiet_git"; printf_cmd="printf";;
     shared )          if [[ $value == '' ]]; then
                         gitinit_params="--shared";
                       else
@@ -162,7 +183,7 @@ fi
 
 # Process each URL in the repository list.
 pwd=`pwd`;
-tmp_destination="$pwd/tmp-git-repo";
+tmp_destination="/tmp/tmp-git-repo-$RANDOM";
 mkdir -p "$destination";
 destination=`cd "$destination"; pwd`; #Absolute path.
 
@@ -171,16 +192,24 @@ if [[ -e $tmp_destination ]]; then
   echo "Temporary repository location \"$tmp_destination\" already exists. Exiting." >&2;
   exit 1;
 fi
+
+cnt_pass=0
+cnt_skip=0
+
 while read line
 do
+  skipping=0
+
   # Check for 2-field format:  Name [tab] URL
   name=`echo $line | awk '{print $1}'`;
   url=`echo $line | awk '{print $2}'`;
+
   # Check for simple 1-field format:  URL
   if [[ $url == '' ]]; then
     url=$name;
     name=`basename $url`;
   fi
+
   # Process each Subversion URL.
   echo >&2;
   echo "At $(date)..." >&2;
@@ -189,53 +218,78 @@ do
   # Init the final bare repository.
   mkdir "$destination/$name.git";
   cd "$destination/$name.git";
-  git init --bare $gitinit_params $gitsvn_params;
-  git symbolic-ref HEAD refs/heads/trunk $gitsvn_params;
+  $git_cmd init --bare $gitinit_params $gitsvn_params;
+  $git_cmd symbolic-ref HEAD refs/heads/trunk $gitsvn_params;
 
   # Clone the original Subversion repository to a temp repository.
   cd "$pwd";
-  echo "- Cloning repository..." >&2;
-  git svn clone "$url" -A "$authors_file" --authors-prog="$dir/svn-lookup-author.sh" --stdlayout --quiet --preserve-empty-dirs --placeholder-filename=".gitkeep" $gitsvn_params "$tmp_destination";
-
-  # Create .gitignore file.
-  echo "- Converting svn:ignore properties into a .gitignore file..." >&2;
-  if [[ $ignore_file != '' ]]; then
-    cp "$ignore_file" "$tmp_destination/.gitignore";
+  $printf_cmd " - Cloning repository..." >&2;
+  $git_cmd svn clone "$url" -A "$authors_file" --authors-prog="$dir/svn-lookup-author.sh" --stdlayout --quiet "$tmp_destination" $gitsvn_params;
+  if [[ $? -eq 0 ]]; then
+    echo_done;
+  else
+    skipping=1;
+    echo_done "Failed.";
   fi
-  cd "$tmp_destination";
-  git svn show-ignore --id trunk >> .gitignore;
-  git add .gitignore;
-  git commit --author="$git_author" -m 'Convert svn:ignore properties to .gitignore.' $gitsvn_params;
 
-  # Push to final bare repository and remove temp repository.
-  echo "- Pushing to new bare repository..." >&2;
-  git remote add bare "$destination/$name.git";
-  git config remote.bare.push 'refs/remotes/*:refs/heads/*';
-  git push bare $gitsvn_params;
-  # Push the .gitignore commit that resides on master.
-  git push bare master:trunk $gitsvn_params;
-  cd "$pwd";
-  rm -r "$tmp_destination";
+  if [[ $skipping -eq 0 ]]; then
+    # Create .gitignore file.
+    $printf_cmd " - Converting svn:ignore properties into a .gitignore file..." >&2;
+    if [[ $ignore_file != '' ]]; then
+      cp "$ignore_file" "$tmp_destination/.gitignore";
+    fi
+    cd "$tmp_destination";
+    $git_cmd svn show-ignore --id trunk >> .gitignore;
+    $git_cmd add .gitignore;
+    $git_cmd commit --author="$git_author" -m 'Convert svn:ignore properties to .gitignore.' $gitsvn_params;
+    #git commit --author="git-svn-migrate <nobody@example.org>" -m 'Convert svn:ignore properties to .gitignore.';
+    echo_done;
 
-  # Rename Subversion's "trunk" branch to Git's standard "master" branch.
-  cd "$destination/$name.git";
-  git branch -m trunk master;
+    # Push to final bare repository and remove temp repository.
+    $printf_cmd " - Pushing to new bare repository..." >&2;
+    $git_cmd remote add bare "$destination/$name.git";
+    $git_cmd config remote.bare.push 'refs/remotes/*:refs/heads/*';
+    $git_cmd push bare $gitsvn_params;
+    # Push the .gitignore commit that resides on master.
+    $git_cmd push bare master:trunk $gitsvn_params;
+    cd "$pwd";
+    rm -r "$tmp_destination";
+    echo_done;
 
-  # Remove bogus branches of the form "name@REV".
-  git for-each-ref --format='%(refname)' refs/heads | grep '@[0-9][0-9]*' | cut -d / -f 3- |
-  while read ref
-  do
-    git branch -D "$ref";
-  done
+    $printf_cmd " - Fix branches..." >&2;
+    # Rename Subversion's "trunk" branch to Git's standard "master" branch.
+    cd "$destination/$name.git";
+    $git_cmd branch -m trunk master;
+    # Remove bogus branches of the form "name@REV".
+    $git_cmd for-each-ref --format='%(refname)' refs/heads | grep '@[0-9][0-9]*' | cut -d / -f 3- |
+    while read ref
+    do
+      $git_cmd branch -D "$ref";
+    done
+    echo_done;
 
-  # Convert git-svn tag branches to proper tags.
-  echo "- Converting svn tag directories to proper git tags..." >&2;
-  git for-each-ref --format='%(refname)' refs/heads/tags | cut -d / -f 4 |
-  while read ref
-  do
-    git tag -a "$ref" -m "Convert \"$ref\" to a proper git tag." "refs/heads/tags/$ref";
-    git branch -D "tags/$ref";
-  done
+    # Convert git-svn tag branches to proper tags.
+    $printf_cmd " - Converting svn tag directories to proper git tags..." >&2;
+    $git_cmd for-each-ref --format='%(refname)' refs/heads/tags | cut -d / -f 4 |
+    while read ref
+    do
+      $git_cmd tag -a "$ref" -m "Convert \"$ref\" to a proper git tag." "refs/heads/tags/$ref";
+      $git_cmd branch -D "tags/$ref";
+    done
+    echo_done;
 
-  echo "- Conversion completed at $(date)." >&2;
+    echo "Conversion of \"$name\" completed at $(date)." >&2;
+    ((cnt_pass++))
+  else
+    echo "Conversion of \"$name\" skipped at $(date)." >&2;
+    ((cnt_skip++))
+  fi
 done < "$url_file"
+
+echo >&2;
+echo "All done! ($cnt_pass / $(( cnt_pass + cnt_skip ))) passed)" >&2
+echo >&2;
+if [[ $cnt_skip -ne 0 ]]; then
+  echo "($cnt_skip conversions were skipped, check the logs)" >&2
+fi
+echo >&2;
