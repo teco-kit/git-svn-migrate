@@ -85,6 +85,7 @@ EOF_HELP
 destination='.';
 gitinit_params='';
 gitsvn_params='';
+git_author='Armando Lüscher <armando@noplanman.ch>';
 
 # Process parameters.
 until [[ -z "$1" ]]; do
@@ -188,8 +189,8 @@ do
   # Init the final bare repository.
   mkdir "$destination/$name.git";
   cd "$destination/$name.git";
-  git init --bare $gitinit_params;
-  git symbolic-ref HEAD refs/heads/trunk;
+  git init --bare $gitinit_params $gitsvn_params;
+  git symbolic-ref HEAD refs/heads/trunk $gitsvn_params;
 
   # Clone the original Subversion repository to a temp repository.
   cd "$pwd";
@@ -204,15 +205,15 @@ do
   cd "$tmp_destination";
   git svn show-ignore --id trunk >> .gitignore;
   git add .gitignore;
-  git commit --author="git-svn-migrate <nobody@example.org>" -m 'Convert svn:ignore properties to .gitignore.';
+  git commit --author="$git_author" -m 'Convert svn:ignore properties to .gitignore.' $gitsvn_params;
 
   # Push to final bare repository and remove temp repository.
   echo "- Pushing to new bare repository..." >&2;
   git remote add bare "$destination/$name.git";
   git config remote.bare.push 'refs/remotes/*:refs/heads/*';
-  git push bare;
+  git push bare $gitsvn_params;
   # Push the .gitignore commit that resides on master.
-  git push bare master:trunk;
+  git push bare master:trunk $gitsvn_params;
   cd "$pwd";
   rm -r "$tmp_destination";
 
