@@ -195,7 +195,9 @@ if [[ -e $tmp_destination ]] && [[ $force -eq 0 ]]; then
 fi
 
 # http://stackoverflow.com/a/114861
-cnt_total=`grep -cve '^[;#]' "$url_file"`;
+# http://stackoverflow.com/a/114836
+# Ignore empty lines and commented lines (with # or ;)
+cnt_total=`grep -vce '^$' -e '^[#;]' "$url_file"`;
 cnt_cur=0;
 cnt_pass=0;
 cnt_skip=0;
@@ -237,7 +239,7 @@ do
     # Clone the original Subversion repository to a temp repository.
     cd "$pwd";
     $printf_cmd " - Cloning repository..." >&2;
-    $git_cmd svn clone "$url" -A "$authors_file" --authors-prog="$dir/svn-lookup-author.sh" --stdlayout --quiet "$tmp_destination" $gitsvn_params;
+    $git_cmd svn clone "$url" -A "$authors_file" --authors-prog="$dir/svn-lookup-author.sh" --stdlayout --no-minimize-url --log-window-size=10000000 --quiet "$tmp_destination" $gitsvn_params;
     if [[ $? -eq 0 ]]; then
       echo_done;
     else
@@ -298,7 +300,7 @@ do
     echo "Conversion of \"$name\" skipped at $(date)." >&2;
     ((cnt_skip++));
   fi
-done < <(grep -v '^[;#]' "$url_file")
+done < <(grep -ve '^$' -e '^[#;]' "$url_file")
 # http://stackoverflow.com/a/8197412
 # http://mywiki.wooledge.org/BashFAQ/024 (ProcessSubstitution)
 
