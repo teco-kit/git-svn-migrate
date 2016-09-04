@@ -115,6 +115,7 @@ if [[ ! -f $url_file ]]; then
   exit 1;
 fi
 
+echo >&2;
 
 # Process each URL in the repository list.
 tmp_file="/tmp/tmp-authors-transform-$RANDOM";
@@ -129,11 +130,12 @@ do
     name=`basename $url`;
   fi
   # Process the log of each Subversion URL.
-  echo "Processing \"$name\" repository at $url" >&2;
-  /bin/echo -n "  " >&2;
+  echo -n "Processing \"$name\" repository at $url" >&2;
   svn log -q $url | awk -F '|' '/^r/ {sub("^ ", "", $2); sub(" $", "", $2); print $2" = "$2" <"$2">"}' | sort -u >> $tmp_file;
-  echo "Done." >&2;
+  echo "   Done." >&2;
 done < <(grep -ve '^$' -e '^[#;]' "$url_file")
+
+echo >&2;
 
 # Sort unique lines.
 cat $tmp_file | sort -u -o $tmp_file;
