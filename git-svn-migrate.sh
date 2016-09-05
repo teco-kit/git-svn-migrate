@@ -226,17 +226,10 @@ fi
 
 echo >&2;
 
-# Process each URL in the repository list.
+# Set up (temporary) destination path.
 tmp_destination="/tmp/tmp-git-repo-${RANDOM}";
+destination="${dir}/${destination}";
 mkdir -p "${destination}";
-destination=$(cd "${destination}"; pwd); #Absolute path.
-
-# Ensure temporary repository location is empty.
-if [[ -e ${tmp_destination} ]] && [[ ${force} -eq 0 ]]; then
-  echo -e "\n${ts_b}${tc_y}Temporary repository location \"${tmp_destination}\" already exists. Exiting.${t_res}\n" >&2;
-  # todo "You may override with --force flag!"
-  exit 1;
-fi
 
 # http://stackoverflow.com/a/114861
 # http://stackoverflow.com/a/114836
@@ -247,6 +240,7 @@ cnt_pass=0;
 cnt_skip=0;
 cnt_fail=0;
 
+# Process each URL in the repository list.
 while IFS= read -r line
 do
   ((cnt_cur++));
@@ -373,6 +367,6 @@ echo "Skipped: ${ts_b}${tc_c}${cnt_skip}${t_res}" >&2;
 echo "Ignored: ${ts_b}${tc_s}$((cnt_total - cnt_cur))${t_res}" >&2
 echo >&2;
 if [[ $((cnt_skip + cnt_fail)) -ne 0 ]]; then
-  echo "(Check the output and logs)" >&2
+  echo "(Check the output and logs. Use the \"--force\" flag to force overwrite of existing destinations)" >&2
   echo >&2;
 fi

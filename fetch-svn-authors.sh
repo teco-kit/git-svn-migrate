@@ -60,6 +60,10 @@ DESCRIPTION
         The file where the exported list of authors be saved.
         (Defaults to the display directly in standard output.)
 
+    -f, --force
+        Force destination file creation, even if it already exists.
+        Be sure about this, it can not be undone! You have been warned.
+
     -h, --help
         Display this help message.
 
@@ -122,6 +126,7 @@ until [[ -z "$1" ]]; do
                        destination_param=${destination_param:-$value}
                      fi
                      ;;
+    f|force )        force=1;;
 
     h|help )         echo "${help}" | less >&2; exit;;
 
@@ -158,6 +163,13 @@ fi
 if [[ $(grep -cvE '^$|^[#;]' "${url_file}") -eq 0 ]]; then
   echo -e "\n${ts_b}${tc_y}Specified URL file \"${url_file}\" does not contain any repositories URLs.${t_res}\n" >&2;
   echo "${usage}" >&2;
+  exit 1;
+fi
+
+# Ensure output file doesn't exist, or force overwrite.
+if [[ -e ${destination} ]] && [[ ${force} -eq 0 ]]; then
+  echo -e "\n${ts_b}${tc_y}Destination location \"${destination}\" already exists. Exiting.${t_res}\n" >&2;
+  echo "You may override this with the \"--force\" flag." >&2;
   exit 1;
 fi
 
