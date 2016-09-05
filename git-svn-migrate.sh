@@ -257,12 +257,11 @@ do
   destination_git="${destination}/${name}.git";
 
   # Process each Subversion URL.
+  echo "${ts_bu}[${cnt_cur}/${cnt_total}] Processing \"${name}\"${t_res}: $(_date)" >&2;
   echo >&2;
-  echo "( ${ts_b}${cnt_cur}${t_res} / ${cnt_total} ) Started at $(_date)." >&2;
   #echo "Processing ${ts_b}\"${name}\"${t_res} repository:" >&2;
-  echo "${ts_u}Processing ${ts_b}\"${name}\"${t_res}:" >&2;
-  echo " < ${url}" >&2;
-  echo " > ${destination_git}" >&2;
+  echo " <  ${url}" >&2;
+  echo " >  ${destination_git}" >&2;
   echo >&2;
 
   # Init the final bare repository.
@@ -338,18 +337,20 @@ do
     echo_done;
     echo >&2;
 
-    echo "${ts_b}${tc_g}pass${t_res} - Conversion of \"${name}\" completed at $(_date)." >&2;
+    echo "[${ts_b}${tc_g}pass${t_res}] $(_date)" >&2;
     ((cnt_pass++));
   else
     echo >&2;
     if [[ ${failing} -ne 0 ]]; then
-      echo "${ts_b}${tc_r}fail${t_res} - Conversion of \"${name}\" failed at $(_date)." >&2;
+      echo "[${ts_b}${tc_r}fail${t_res}] $(_date)" >&2;
       ((cnt_fail++));
     else
-      echo "${ts_b}${tc_c}skip${t_res} - Conversion of \"${name}\" skipped at $(_date)." >&2;
+      echo "[${ts_b}${tc_c}skip${t_res}] $(_date)" >&2;
       ((cnt_skip++));
     fi
   fi
+
+  echo >&2;
 done < <(grep -vE '^$|^[#;]' "${url_file}" | nl -w14 -nrz -s, | sort -t, -k2 -u | sort -n | cut -d, -f2-)
 # http://stackoverflow.com/a/8197412
 # http://mywiki.wooledge.org/BashFAQ/024 (ProcessSubstitution)
@@ -362,7 +363,7 @@ echo "Failed:  ${ts_b}${tc_r}${cnt_fail}${t_res}" >&2;
 echo "Skipped: ${ts_b}${tc_c}${cnt_skip}${t_res}" >&2;
 echo "Ignored: ${ts_b}${tc_s}$((cnt_total - cnt_cur))${t_res}" >&2
 echo >&2;
-if [[ ${cnt_skip} -ne 0 ]]; then
-  echo "(${cnt_skip} conversions were skipped, check the output and logs)" >&2
+if [[ $((cnt_skip + cnt_fail)) -ne 0 ]]; then
+  echo "(Check the output and logs)" >&2
   echo >&2;
 fi
