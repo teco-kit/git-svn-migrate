@@ -1,9 +1,14 @@
 #!/bin/bash
 
 # Copyright 2010 John Albin Wilkins.
+# Copyright 2016 Armando Lüscher.
 # Available under the GPL v2 license. See LICENSE.txt.
 
 script=`basename $0`;
+dir=`pwd`/`dirname $0`;
+
+# Set defaults for any optional parameters or arguments.
+destination='';
 
 # Text color variables
 ts_u=$(tput sgr 0 1); # underline
@@ -19,22 +24,22 @@ tc_w=$(tput setaf 7); # white
 tc_s=$(tput setaf 8); # silver
 
 usage=`cat <<EOF_USAGE
-USAGE: $script --url-file=<filename> [--destination=<filename>]
+USAGE: ${script} --url-file=<filename> [--destination=<filename>]
 
-For more info, see: $script --help
+For more info, see: ${script} --help
 EOF_USAGE
 `;
 
 help=`cat <<EOF_HELP
 NAME
-    $script - Retrieves Subversion usernames from a list of
+    ${script} - Retrieves Subversion usernames from a list of
     URLs for use in a git-svn-migrate (or git-svn) conversion.
 
 SYNOPSIS
-    $script [options]
+    ${script} [options]
 
 DESCRIPTION
-    The $script utility creates a list of Subversion committers
+    The ${script} utility creates a list of Subversion committers
     from a list of Subversion URLs for Git using the
     specified authors list. The url-file parameter is required.
     If the destination parameter is not specified the authors
@@ -57,10 +62,10 @@ DESCRIPTION
 
 BASIC EXAMPLES
     # Use the long parameter names
-    $script --url-file=my-repository-list.txt --destination=authors-file.txt
+    ${script} --url-file=my-repository-list.txt --destination=authors-file.txt
 
     # Use short parameter names and redirect standard output
-    $script -u my-repository-list.txt > authors-file.txt
+    ${script} -u my-repository-list.txt > authors-file.txt
 
 SEE ALSO
     git-svn-migrate.sh
@@ -68,10 +73,6 @@ SEE ALSO
     svn-lookup-author.sh
 EOF_HELP
 `;
-
-
-# Set defaults for any optional parameters or arguments.
-destination='';
 
 # Process parameters.
 until [[ -z "$1" ]]; do
@@ -89,13 +90,13 @@ until [[ -z "$1" ]]; do
   fi
   parameter=${tmp%%=*}; # Extract option's name.
   value=${tmp##*=};     # Extract option's value.
-  case $parameter in
+  case ${parameter} in
     # Some parameters don't require a value.
     #no-minimize-url ) ;;
 
     # If a value is expected, but not specified inside the parameter, grab the next param.
     * )
-      if [[ $value == $tmp ]]; then
+      if [[ ${value} == ${tmp} ]]; then
         if [[ ${2:0:1} == '-' ]]; then
           # The next parameter is a new option, so unset the value.
           value='';
@@ -106,13 +107,13 @@ until [[ -z "$1" ]]; do
       ;;
   esac
 
-  case $parameter in
-    u|url-file )     url_file=$value;;
-    d|destination )  destination=$value;;
+  case ${parameter} in
+    u|url-file )     url_file=${value};;
+    d|destination )  destination=${value};;
 
     h|help )         echo -e "$help" | less >&2; exit;;
 
-    * )              echo -e "\n${ts_b}${tc_y}Unknown option: $option${t_res}\n\n$usage" >&2;
+    * )              echo -e "\n${ts_b}${tc_y}Unknown option: $option${t_res}\n\n${usage}" >&2;
                      exit 1;
                      ;;
   esac
@@ -122,16 +123,16 @@ until [[ -z "$1" ]]; do
 done
 
 # If a destination is given, make it a full path.
-if [[ $destination != '' ]]; then destination="`pwd`/${destination}"; fi
+if [[ ${destination} != '' ]]; then destination="${dir}/${destination}"; fi
 
 # Check for required parameters.
-if [[ $url_file == '' ]]; then
-  echo -e "\n${ts_b}${tc_y}No URL file specified.${t_res}\n\n$usage" >&2;
+if [[ ${url_file} == '' ]]; then
+  echo -e "\n${ts_b}${tc_y}No URL file specified.${t_res}\n\n${usage}" >&2;
   exit 1;
 fi
 
 # Check for valid file.
-if [[ ! -f $url_file ]]; then
+if [[ ! -f ${url_file} ]]; then
   echo -e "\n${ts_b}${tc_y}Specified URL file \"${url_file}\" does not exist or is not a file.${t_res}\n\n${usage}" >&2;
   exit 1;
 fi
@@ -149,12 +150,12 @@ tmp_file="/tmp/tmp-authors-transform-${RANDOM}";
 while IFS= read -r line
 do
   # Check for 2-field format:  Name [tab] URL
-  name=`echo $line | awk '{print $1}'`;
-  url=`echo $line | awk '{print $2}'`;
+  name=`echo ${line} | awk '{print $1}'`;
+  url=`echo ${line} | awk '{print $2}'`;
   # Check for simple 1-field format:  URL
-  if [[ $url == '' ]]; then
-    url=$name;
-    name=`basename $url`;
+  if [[ ${url} == '' ]]; then
+    url=${name};
+    name=`basename ${url}`;
   fi
   # Process the log of each Subversion URL.
   echo -n "Processing ${ts_b}\"${name}\"${t_res} repository at ${url}" >&2;
@@ -171,9 +172,11 @@ done < <(grep -ve '^$' -e '^[#;]' "${url_file}" | nl -w14 -nrz -s, | sort -t, -k
 
 echo >&2;
 
+echo -ne "${ts_u}${ts_b}Authors list${t_res}" >&2;
+
 # Do we have any valid entries?
 if [[ ! -f ${tmp_file} ]]; then
-  echo -e "${ts_b}${tc_y}No Authors found.${t_res}\n" >&2;
+  echo -e "\n${ts_b}${tc_y}No Authors found.${t_res}\n" >&2;
   exit 1;
 fi
 
@@ -181,14 +184,16 @@ fi
 cat ${tmp_file} | sort -u -o ${tmp_file};
 
 # Process temp file one last time to show results.
-if [[ $destination == '' ]]; then
+if [[ ${destination} == '' ]]; then
+  echo >&2;
   # Display on standard output.
-  echo -e "${ts_u}${ts_b}Authors list${t_res}" >&2;
   cat ${tmp_file};
 else
   # Copy to the specified destination file.
-  cp ${tmp_file} $destination;
-  echo -e "${ts_u}${ts_b}Authors list${t_res} saved to: ${destination}" >&2;
+  cp ${tmp_file} ${destination};
+  echo -e " saved to: ${destination}" >&2;
 fi
+
 unlink ${tmp_file};
+
 echo >&2;
