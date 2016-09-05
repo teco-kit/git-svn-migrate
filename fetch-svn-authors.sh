@@ -138,7 +138,7 @@ if [[ ! -f ${url_file} ]]; then
 fi
 
 # Check that we have links to work with.
-if [[ `grep -cve '^$' -e '^[#;]' "${url_file}"` -eq 0 ]]; then
+if [[ `grep -cvE '^$|^[#;]' "${url_file}"` -eq 0 ]]; then
   echo -e "\n${ts_b}${tc_y}Specified URL file \"${url_file}\" does not contain any repositories URLs.${t_res}\n\n${usage}" >&2;
   exit 1;
 fi
@@ -167,7 +167,7 @@ do
     echo -e "   ${ts_b}${tc_r}Failed.${t_res}" >&2;
     #echo -e "${ts_b}${tc_r}${res}${t_res}\n" >&2;
   fi
-done < <(grep -ve '^$' -e '^[#;]' "${url_file}" | nl -w14 -nrz -s, | sort -t, -k2 -u | sort -n | cut -d, -f2-)
+done < <(grep -vE '^$|^[#;]' "${url_file}" | nl -w14 -nrz -s, | sort -t, -k2 -u | sort -n | cut -d, -f2-)
 # Unique entries: http://stackoverflow.com/a/30906433
 
 echo >&2;

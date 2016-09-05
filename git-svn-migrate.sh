@@ -202,7 +202,7 @@ fi
 # http://stackoverflow.com/a/114861
 # http://stackoverflow.com/a/114836
 # Ignore empty lines and commented lines (with # or ;)
-cnt_total=`grep -vce '^$' -e '^[#;]' "$url_file"`;
+cnt_total=`grep -vcE '^$|^[#;]' "$url_file"`;
 cnt_cur=0;
 cnt_pass=0;
 cnt_skip=0;
@@ -313,7 +313,7 @@ do
     echo "Conversion of \"$name\" skipped at `date`." >&2;
     ((cnt_skip++));
   fi
-done < <(grep -ve '^$' -e '^[#;]' "$url_file")
+done < <(grep -vE '^$|^[#;]' "$url_file")
 # http://stackoverflow.com/a/8197412
 # http://mywiki.wooledge.org/BashFAQ/024 (ProcessSubstitution)
 
