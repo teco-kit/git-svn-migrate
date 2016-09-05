@@ -8,7 +8,7 @@ script=$(basename $0);
 dir=$(pwd);
 
 # Set defaults for any optional parameters or arguments.
-destination='';
+destination=''; # Must be a valid path, empty value outputs to the screen only.
 
 # Text style and color variables.
 ts_u=$(tput sgr 0 1); # underline
@@ -78,6 +78,9 @@ SEE ALSO
 EOF_HELP
 );
 
+# Destination to get from parameters.
+destination_param='';
+
 # Process parameters.
 until [[ -z "$1" ]]; do
   option=$1;
@@ -106,6 +109,7 @@ until [[ -z "$1" ]]; do
           value='';
         else
           value=$2;
+          shift;
         fi
       fi
       ;;
@@ -113,7 +117,11 @@ until [[ -z "$1" ]]; do
 
   case ${parameter} in
     u|url-file )     url_file=${value};;
-    d|destination )  destination=${value};;
+    d|destination )  # empty, ".", and ".." are invalid.
+                     if [[ ! ${value} =~ ^\.?\.?$ ]]; then
+                       destination_param=${destination_param:-$value}
+                     fi
+                     ;;
 
     h|help )         echo "${help}" | less >&2; exit;;
 
@@ -126,8 +134,11 @@ until [[ -z "$1" ]]; do
   shift;
 done
 
-# If a destination is given, make it a full path.
-if [[ ${destination} != '' ]]; then destination="${dir}/${destination}"; fi
+# Set the definite destination.
+destination=${destination_param:-$destination};
+
+# If a valid destination is given, make it a full path.
+if [[ ! ${destination} =~ ^\.?\.?$ ]]; then destination="${dir}/${destination}"; else destination=''; fi
 
 # Check for required parameters.
 if [[ ${url_file} == '' ]]; then

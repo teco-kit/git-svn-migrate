@@ -136,6 +136,9 @@ echo_done() {
   echo "   ${msg}" >&2;
 }
 
+# Destination to get from parameters.
+destination_param='';
+
 # Process parameters.
 until [[ -z "$1" ]]; do
   option=$1;
@@ -161,13 +164,14 @@ until [[ -z "$1" ]]; do
       value='';
     else
       value=$2;
+      shift;
     fi
   fi
 
   case ${parameter} in
     u|url-file )      url_file=${value};;
     a|authors-file )  authors_file=${value};;
-    d|destination )   destination=${value};;
+    d|destination )   destination_param=${destination_param:-$value};;
     i|ignore-file )   ignore_file=${value};;
     f|force )         force=1;;
     q|quiet )         _git="quiet_git"; _echo="echo -n";;
@@ -191,6 +195,9 @@ until [[ -z "$1" ]]; do
   # Remove the processed parameter.
   shift;
 done
+
+# Set the definite destination.
+destination=${destination_param:-$destination};
 
 # Check for required parameters.
 if [[ ${url_file} == '' || ${authors_file} == '' ]]; then
