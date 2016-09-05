@@ -10,7 +10,7 @@ dir=$(pwd);
 # Set defaults for any optional parameters or arguments.
 destination='';
 
-# Text color variables.
+# Text style and color variables.
 ts_u=$(tput sgr 0 1); # underline
 ts_b=$(tput bold);    # bold
 t_res=$(tput sgr0);   # reset
@@ -111,9 +111,9 @@ until [[ -z "$1" ]]; do
     u|url-file )     url_file=${value};;
     d|destination )  destination=${value};;
 
-    h|help )         echo -e "${help}" | less >&2; exit;;
+    h|help )         echo "${help}" | less >&2; exit;;
 
-    * )              echo -e "\n${ts_b}${tc_y}Unknown option: $option${t_res}\n\n${usage}" >&2;
+    * )              echo "\n${ts_b}${tc_y}Unknown option: $option${t_res}\n\n${usage}" >&2;
                      exit 1;
                      ;;
   esac
@@ -127,19 +127,19 @@ if [[ ${destination} != '' ]]; then destination="${dir}/${destination}"; fi
 
 # Check for required parameters.
 if [[ ${url_file} == '' ]]; then
-  echo -e "\n${ts_b}${tc_y}No URL file specified.${t_res}\n\n${usage}" >&2;
+  echo "\n${ts_b}${tc_y}No URL file specified.${t_res}\n\n${usage}" >&2;
   exit 1;
 fi
 
 # Check for valid file.
 if [[ ! -f ${url_file} ]]; then
-  echo -e "\n${ts_b}${tc_y}Specified URL file \"${url_file}\" does not exist or is not a file.${t_res}\n\n${usage}" >&2;
+  echo "\n${ts_b}${tc_y}Specified URL file \"${url_file}\" does not exist or is not a file.${t_res}\n\n${usage}" >&2;
   exit 1;
 fi
 
 # Check that we have links to work with.
 if [[ $(grep -cvE '^$|^[#;]' "${url_file}") -eq 0 ]]; then
-  echo -e "\n${ts_b}${tc_y}Specified URL file \"${url_file}\" does not contain any repositories URLs.${t_res}\n\n${usage}" >&2;
+  echo "\n${ts_b}${tc_y}Specified URL file \"${url_file}\" does not contain any repositories URLs.${t_res}\n\n${usage}" >&2;
   exit 1;
 fi
 
@@ -164,19 +164,19 @@ do
     echo "${res}" | awk -F '|' '/^r/ {sub("^ ", "", $2); sub(" $", "", $2); print $2" = "$2" <"$2">"}' | sort -u >> ${tmp_file};
     echo "   ${ts_b}${tc_g}Done.${t_res}" >&2;
   else
-    echo -e "   ${ts_b}${tc_r}Failed.${t_res}" >&2;
-    #echo -e "${ts_b}${tc_r}${res}${t_res}\n" >&2;
+    echo "   ${ts_b}${tc_r}Failed.${t_res}" >&2;
+    #echo "${ts_b}${tc_r}${res}${t_res}\n" >&2;
   fi
 done < <(grep -vE '^$|^[#;]' "${url_file}" | nl -w14 -nrz -s, | sort -t, -k2 -u | sort -n | cut -d, -f2-)
 # Unique entries: http://stackoverflow.com/a/30906433
 
 echo >&2;
 
-echo -ne "${ts_u}${ts_b}Authors list${t_res}" >&2;
+echo -n "${ts_u}${ts_b}Authors list${t_res}" >&2;
 
 # Do we have any valid entries?
 if [[ ! -f ${tmp_file} ]]; then
-  echo -e "\n${ts_b}${tc_y}No Authors found.${t_res}\n" >&2;
+  echo "\n${ts_b}${tc_y}No Authors found.${t_res}\n" >&2;
   exit 1;
 fi
 
@@ -191,7 +191,7 @@ if [[ ${destination} == '' ]]; then
 else
   # Copy to the specified destination file.
   cp ${tmp_file} ${destination};
-  echo -e " saved to: ${destination}" >&2;
+  echo " saved to: ${destination}" >&2;
 fi
 
 unlink ${tmp_file};

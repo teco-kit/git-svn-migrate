@@ -19,6 +19,19 @@ _echo='echo';
 stdout_file="${dir}/log/$(date +%Y%m%d%H%M%S).std.out";
 stderr_file="${dir}/log/$(date +%Y%m%d%H%M%S).std.err";
 
+# Text style and color variables.
+ts_u=$(tput sgr 0 1); # underline
+ts_b=$(tput bold);    # bold
+t_res=$(tput sgr0);   # reset
+tc_r=$(tput setaf 1); # red
+tc_g=$(tput setaf 2); # green
+tc_y=$(tput setaf 3); # yellow
+tc_p=$(tput setaf 4); # purple
+tc_v=$(tput setaf 5); # violet
+tc_c=$(tput setaf 6); # cyan
+tc_w=$(tput setaf 7); # white
+tc_s=$(tput setaf 8); # silver
+
 usage=$(cat <<EOF_USAGE
 USAGE: ${script} --url-file=<filename> --authors-file=<filename> [destination folder]
 
@@ -172,21 +185,30 @@ done
 
 # Check for required parameters.
 if [[ ${url_file} == '' || ${authors_file} == '' ]]; then
+  echo "\n${ts_b}${tc_y}Both URL file and authors file must be specified.${t_res}\n" >&2;
   echo "${usage}" >&2;
   exit 1;
 fi
 # Check for valid files.
 if [[ ! -f ${url_file} ]]; then
-  echo "Specified URL file \"${url_file}\" does not exist or is not a file." >&2;
+  echo "\n${ts_b}${tc_y}Specified URL file \"${url_file}\" does not exist or is not a file.${t_res}\n" >&2;
   echo "${usage}" >&2;
   exit 1;
 fi
 if [[ ! -f ${authors_file} ]]; then
-  echo "Specified authors file \"${authors_file}\" does not exist or is not a file." >&2;
+  echo "\n${ts_b}${tc_y}Specified authors file \"${authors_file}\" does not exist or is not a file.${t_res}\n" >&2;
   echo "${usage}" >&2;
   exit 1;
 fi
 
+# Check that we have links to work with.
+if [[ $(grep -cvE '^$|^[#;]' "${url_file}") -eq 0 ]]; then
+  echo "\n${ts_b}${tc_y}Specified URL file \"${url_file}\" does not contain any repositories URLs.${t_res}\n" >&2;
+  echo "${usage}" >&2;
+  exit 1;
+fi
+
+echo >&2;
 
 # Process each URL in the repository list.
 tmp_destination="/tmp/tmp-git-repo-$RANDOM";
@@ -195,7 +217,7 @@ destination=$(cd "$destination"; pwd); #Absolute path.
 
 # Ensure temporary repository location is empty.
 if [[ -e ${tmp_destination} ]] && [[ ${force} -eq 0 ]]; then
-  echo "Temporary repository location \"${tmp_destination}\" already exists. Exiting." >&2;
+  echo "\n${ts_b}${tc_y}Temporary repository location \"${tmp_destination}\" already exists. Exiting.${t_res}\n" >&2;
   exit 1;
 fi
 
@@ -228,8 +250,8 @@ do
 
   # Process each Subversion URL.
   echo >&2;
-  echo "( $cnt_cur / ${cnt_total} ) At $(date)..." >&2;
-  echo "Processing \"${name}\" repository:" >&2;
+  echo "( ${ts_b}$cnt_cur${t_res} / ${cnt_total} ) At $(date)..." >&2;
+  echo "Processing ${ts_b}\"${name}\"${t_res} repository:" >&2;
   echo " < ${url}" >&2;
   echo " > ${destination_git}" >&2;
   echo >&2;
