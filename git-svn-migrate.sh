@@ -11,7 +11,7 @@ dir=$(pwd);
 destination='.';
 gitinit_params='';
 gitsvn_params='';
-git_author='Armando Lüscher <armando@noplanman.ch>';
+git_author='git-svn-migrate <nobody@example.org>';
 
 _git='git';
 _echo='echo';
