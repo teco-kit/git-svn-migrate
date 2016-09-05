@@ -240,8 +240,7 @@ while IFS= read -r line
 do
   ((cnt_cur++));
 
-  skipping=0;
-  failing=0;
+  status=0; # 0=passed, 1=failed, 2=skipped
 
   # Check for 2-field format:  Name [tab] URL
   name=$(echo ${line} | awk '{print $1}');
@@ -267,11 +266,12 @@ do
   # Init the final bare repository.
   # Ensure temporary repository location is empty.
   if [[ -e "${destination_git}" ]] && [[ ${force} -eq 0 ]]; then
-    echo " - Repository location \"${destination_git}\" already exists.   Skipped." >&2;
-    skipping=1;
+    echo -n " - Repository location \"${destination_git}\" already exists." >&2;
+    status=2;
+    echo_done "Skipped.";
   fi
 
-  if [[ ${skipping} -eq 0 ]]; then
+  if [[ ${status} -eq 0 ]]; then
     mkdir -p "${destination_git}";
     cd "${destination_git}";
     ${_git} init --bare ${gitinit_params} ${gitsvn_params};
@@ -284,13 +284,12 @@ do
     if [[ $? -eq 0 ]]; then
       echo_done;
     else
-      skipping=1;
-      failing=1;
+      status=1;
       echo_done "Failed.";
     fi
   fi
 
-  if [[ ${skipping} -eq 0 ]]; then
+  if [[ ${status} -eq 0 ]]; then
     # Create .gitignore file.
     ${_echo} " - svn:ignore => .gitignore file..." >&2;
     if [[ ${ignore_file} != '' ]]; then
@@ -300,7 +299,6 @@ do
     ${_git} svn show-ignore --id trunk >> .gitignore;
     ${_git} add .gitignore;
     ${_git} commit --author="${git_author}" -m 'Convert svn:ignore properties to .gitignore.' ${gitsvn_params};
-    #git commit --author="git-svn-migrate <nobody@example.org>" -m 'Convert svn:ignore properties to .gitignore.';
     echo_done;
 
     # Push to final bare repository and remove temp repository.
@@ -314,7 +312,7 @@ do
     rm -r "${tmp_destination}";
     echo_done;
 
-    ${_echo} " - Fix branches..." >&2;
+    ${_echo} " - Fixing branches..." >&2;
     # Rename Subversion's "trunk" branch to Git's standard "master" branch.
     cd "${destination_git}";
     ${_git} branch -m trunk master;
@@ -341,7 +339,7 @@ do
     ((cnt_pass++));
   else
     echo >&2;
-    if [[ ${failing} -ne 0 ]]; then
+    if [[ ${status} -eq 1 ]]; then
       echo "[${ts_b}${tc_r}fail${t_res}] $(_date)" >&2;
       ((cnt_fail++));
     else
