@@ -3,8 +3,8 @@
 # Copyright 2010-2011 John Albin Wilkins and contributors.
 # Available under the GPL v2 license. See LICENSE.txt.
 
-script=`basename $0`;
-dir=`pwd`/`dirname $0`;
+script=$(basename $0);
+dir=$(pwd);
 
 # Set defaults for any optional parameters or arguments.
 destination='.';
@@ -15,17 +15,17 @@ git_author='Armando Lüscher <armando@noplanman.ch>';
 _git='git';
 _echo='echo';
 
-stdout_file="$dir/log/`date +%Y%m%d%H%M%S`.std.out";
-stderr_file="$dir/log/`date +%Y%m%d%H%M%S`.std.err";
+stdout_file="$dir/log/$(date +%Y%m%d%H%M%S).std.out";
+stderr_file="$dir/log/$(date +%Y%m%d%H%M%S).std.err";
 
-usage=`cat <<EOF_USAGE
+usage=$(cat <<EOF_USAGE
 USAGE: $script --url-file=<filename> --authors-file=<filename> [destination folder]
 \n
 \nFor more info, see: $script --help
 EOF_USAGE
-`;
+);
 
-help=`cat <<EOF_HELP
+help=$(cat <<EOF_HELP
 NAME
 \n\t$script - Migrates Subversion repositories to Git
 \n
@@ -97,11 +97,11 @@ NAME
 \n\tfetch-svn-authors.sh
 \n\tsvn-lookup-author.sh
 EOF_HELP
-`;
+);
 
 # Truly quiet git execution. (idea from http://stackoverflow.com/a/8944284)
 quiet_git() {
-  return `git "$@" </dev/null >>$stdout_file 2>>$stderr_file`;
+  return $(git "$@" </dev/null >>$stdout_file 2>>$stderr_file);
 }
 
 # Output the "Done!" message after a step has completed.
@@ -188,10 +188,9 @@ fi
 
 
 # Process each URL in the repository list.
-pwd=`pwd`;
 tmp_destination="/tmp/tmp-git-repo-$RANDOM";
 mkdir -p "$destination";
-destination=`cd "$destination"; pwd`; #Absolute path.
+destination=$(cd "$destination"; pwd); #Absolute path.
 
 # Ensure temporary repository location is empty.
 if [[ -e $tmp_destination ]] && [[ $force -eq 0 ]]; then
@@ -202,7 +201,7 @@ fi
 # http://stackoverflow.com/a/114861
 # http://stackoverflow.com/a/114836
 # Ignore empty lines and commented lines (with # or ;)
-cnt_total=`grep -vcE '^$|^[#;]' "$url_file"`;
+cnt_total=$(grep -vcE '^$|^[#;]' "$url_file");
 cnt_cur=0;
 cnt_pass=0;
 cnt_skip=0;
@@ -214,13 +213,13 @@ do
   skipping=0;
 
   # Check for 2-field format:  Name [tab] URL
-  name=`echo $line | awk '{print $1}'`;
-  url=`echo $line | awk '{print $2}'`;
+  name=$(echo $line | awk '{print $1}');
+  url=$(echo $line | awk '{print $2}');
 
   # Check for simple 1-field format:  URL
   if [[ $url == '' ]]; then
     url=$name;
-    name=`basename $url`;
+    name=$(basename $url);
   fi
 
   # The directory where the new git repository is going.
@@ -228,7 +227,7 @@ do
 
   # Process each Subversion URL.
   echo >&2;
-  echo "( $cnt_cur / $cnt_total ) At `date`..." >&2;
+  echo "( $cnt_cur / $cnt_total ) At $(date)..." >&2;
   echo "Processing \"$name\" repository:" >&2;
   echo " < $url" >&2;
   echo " > $destination_git" >&2;
@@ -248,7 +247,7 @@ do
     $_git symbolic-ref HEAD refs/heads/trunk $gitsvn_params;
 
     # Clone the original Subversion repository to a temp repository.
-    cd "$pwd";
+    cd "$dir";
     $_echo " - Cloning repository..." >&2;
     $_git svn clone "$url" -A "$authors_file" --authors-prog="$dir/svn-lookup-author.sh" --stdlayout --quiet "$tmp_destination" $gitsvn_params;
     if [[ $? -eq 0 ]]; then
@@ -279,7 +278,7 @@ do
     $_git push bare $gitsvn_params;
     # Push the .gitignore commit that resides on master.
     $_git push bare master:trunk $gitsvn_params;
-    cd "$pwd";
+    cd "$dir";
     rm -r "$tmp_destination";
     echo_done;
 
@@ -306,11 +305,11 @@ do
     echo_done;
     echo >&2;
 
-    echo "Conversion of \"$name\" completed at `date`." >&2;
+    echo "Conversion of \"$name\" completed at $(date)." >&2;
     ((cnt_pass++));
   else
     echo >&2;
-    echo "Conversion of \"$name\" skipped at `date`." >&2;
+    echo "Conversion of \"$name\" skipped at $(date)." >&2;
     ((cnt_skip++));
   fi
 done < <(grep -vE '^$|^[#;]' "$url_file")

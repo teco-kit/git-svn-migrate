@@ -4,13 +4,13 @@
 # Copyright 2016 Armando Lüscher.
 # Available under the GPL v2 license. See LICENSE.txt.
 
-script=`basename $0`;
-dir=`pwd`/`dirname $0`;
+script=$(basename $0);
+dir=$(pwd);
 
 # Set defaults for any optional parameters or arguments.
 destination='';
 
-# Text color variables
+# Text color variables.
 ts_u=$(tput sgr 0 1); # underline
 ts_b=$(tput bold);    # bold
 t_res=$(tput sgr0);   # reset
@@ -23,14 +23,14 @@ tc_c=$(tput setaf 6); # cyan
 tc_w=$(tput setaf 7); # white
 tc_s=$(tput setaf 8); # silver
 
-usage=`cat <<EOF_USAGE
+usage=$(cat <<EOF_USAGE
 USAGE: ${script} --url-file=<filename> [--destination=<filename>]
 
 For more info, see: ${script} --help
 EOF_USAGE
-`;
+);
 
-help=`cat <<EOF_HELP
+help=$(cat <<EOF_HELP
 NAME
     ${script} - Retrieves Subversion usernames from a list of
     URLs for use in a git-svn-migrate (or git-svn) conversion.
@@ -72,7 +72,7 @@ SEE ALSO
     git-svn-migrate-nohup.sh
     svn-lookup-author.sh
 EOF_HELP
-`;
+);
 
 # Process parameters.
 until [[ -z "$1" ]]; do
@@ -111,7 +111,7 @@ until [[ -z "$1" ]]; do
     u|url-file )     url_file=${value};;
     d|destination )  destination=${value};;
 
-    h|help )         echo -e "$help" | less >&2; exit;;
+    h|help )         echo -e "${help}" | less >&2; exit;;
 
     * )              echo -e "\n${ts_b}${tc_y}Unknown option: $option${t_res}\n\n${usage}" >&2;
                      exit 1;
@@ -138,7 +138,7 @@ if [[ ! -f ${url_file} ]]; then
 fi
 
 # Check that we have links to work with.
-if [[ `grep -cvE '^$|^[#;]' "${url_file}"` -eq 0 ]]; then
+if [[ $(grep -cvE '^$|^[#;]' "${url_file}") -eq 0 ]]; then
   echo -e "\n${ts_b}${tc_y}Specified URL file \"${url_file}\" does not contain any repositories URLs.${t_res}\n\n${usage}" >&2;
   exit 1;
 fi
@@ -150,16 +150,16 @@ tmp_file="/tmp/tmp-authors-transform-${RANDOM}";
 while IFS= read -r line
 do
   # Check for 2-field format:  Name [tab] URL
-  name=`echo ${line} | awk '{print $1}'`;
-  url=`echo ${line} | awk '{print $2}'`;
+  name=$(echo ${line} | awk '{print $1}');
+  url=$(echo ${line} | awk '{print $2}');
   # Check for simple 1-field format:  URL
   if [[ ${url} == '' ]]; then
     url=${name};
-    name=`basename ${url}`;
+    name=$(basename ${url});
   fi
   # Process the log of each Subversion URL.
   echo -n "Processing ${ts_b}\"${name}\"${t_res} repository at ${url}" >&2;
-  res=`svn log -q "${url}" 2>&1`;
+  res=$(svn log -q "${url}" 2>&1);
   if [[ $? -eq 0 ]]; then
     echo "${res}" | awk -F '|' '/^r/ {sub("^ ", "", $2); sub(" $", "", $2); print $2" = "$2" <"$2">"}' | sort -u >> ${tmp_file};
     echo "   ${ts_b}${tc_g}Done.${t_res}" >&2;
