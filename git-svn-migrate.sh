@@ -16,6 +16,7 @@ git_author='git-svn-migrate <nobody@example.org>';
 _git='git';
 _echo='echo';
 
+# Output files for quiet_git.
 stdout_file="${dir}/log/$(date +%Y%m%d%H%M%S).std.out";
 stderr_file="${dir}/log/$(date +%Y%m%d%H%M%S).std.err";
 
@@ -54,7 +55,7 @@ DESCRIPTION
     destination folder is optional and can be specified as an
     argument or as a named parameter.
 
-    The following options are available:
+    The following options are required:
 
     -u=<filename>, -u <filename>,
     --url-file=<filename>, --url-file <filename>
@@ -64,11 +65,12 @@ DESCRIPTION
     --authors-file=<filename>, --authors-file <filename>
         Specify the file containing the authors transformation data.
 
+    The following options are available:
+
     [-d=]<folder>, [-d ]<folder>,
     [--destination=]<folder>, [--destination ]<folder>
         The directory where the new Git repositories should be
-        saved. Defaults to the current directory.
-        This parameter can also be passed without the param flag.
+        saved. (Defaults to the current directory.)
 
     -i=<filename>, -i <filename>,
     --ignore-file=<filename>, --ignore-file <filename>
@@ -83,6 +85,10 @@ DESCRIPTION
         number as it is processed from Subversion. Since conversion can sometimes
         take hours to complete, this output can be useful. However, this option
         will suppress that output.
+        (See git-svn-migrate-nohup.sh script for an alternative.)
+
+    -h, --help
+        Display this help message.
 
     --no-metadata
         By default, all converted log messages will include a line starting with
@@ -114,6 +120,7 @@ SEE ALSO
 EOF_HELP
 );
 
+# Output the date in a the format "dd.mm.YYYY HH:MM:SS".
 _date() {
   echo $(date +%d\.%m\.%Y\ %H\:%M\:%S);
 }
@@ -127,9 +134,6 @@ quiet_git() {
 echo_done() {
   msg="${1:-Done.}";
   echo "   ${msg}" >&2;
-  if [[ ${_echo} == "echo" ]]; then
-    echo >&2;
-  fi
 }
 
 # Process parameters.

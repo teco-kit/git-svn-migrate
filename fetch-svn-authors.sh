@@ -25,7 +25,7 @@ tc_w=$(tput setaf 7); # white
 tc_s=$(tput setaf 8); # silver
 
 usage=$(cat <<EOF_USAGE
-USAGE: ${script} --url-file=<filename> [--destination=<filename>]
+USAGE: ${script} --url-file=<filename> [destination filename]
 
 For more info, see: ${script} --help
 EOF_USAGE
@@ -37,29 +37,31 @@ NAME
     URLs for use in a git-svn-migrate (or git-svn) conversion.
 
 SYNOPSIS
-    ${script} [options]
+    ${script} [options] [arguments]
 
 DESCRIPTION
     The ${script} utility creates a list of Subversion committers
     from a list of Subversion URLs for Git using the
     specified authors list. The url-file parameter is required.
-    If the destination parameter is not specified the authors
+    The destination parameter is optional and can be specified as an
+    argument or as a named parameter. If it is not specified the authors
     will be displayed in standard output.
 
-    The following options are available:
+    The following options are required:
 
     -u=<filename>, -u <filename>,
     --url-file=<filename>, --url-file <filename>
         Specify the file containing the Subversion repository list.
 
-    -a=<filename>, -a <filename>,
-    --authors-file=[filename], --authors-file [filename]
-        Specify the file containing the authors transformation data.
+    The following options are available:
 
-    -d=<folder>, -d <folder,
-    --destination=<folder>, --destination <folder>
-        The directory where the new Git repositories should be
-        saved. Defaults to the current directory.
+    [-d=]<file>, [-d ]<file>,
+    [--destination=]<file>, [--destination ]<file>
+        The file where the exported list of authors be saved.
+        (Defaults to the display directly in standard output.)
+
+    -h, --help
+        Display this help message.
 
 BASIC EXAMPLES
     # Use the long parameter names
@@ -67,10 +69,11 @@ BASIC EXAMPLES
 
     # Use short parameter names and redirect standard output
     ${script} -u my-repository-list.txt > authors-file.txt
+    ${script} -u my-repository-list.txt authors-file.txt
 
 SEE ALSO
-    git-svn-migrate.sh
     git-svn-migrate-nohup.sh
+    git-svn-migrate.sh
     svn-lookup-author.sh
 EOF_HELP
 );
@@ -128,19 +131,22 @@ if [[ ${destination} != '' ]]; then destination="${dir}/${destination}"; fi
 
 # Check for required parameters.
 if [[ ${url_file} == '' ]]; then
-  echo "\n${ts_b}${tc_y}No URL file specified.${t_res}\n\n${usage}" >&2;
+  echo "\n${ts_b}${tc_y}No URL file specified.${t_res}\n" >&2;
+  echo "${usage}" >&2;
   exit 1;
 fi
 
 # Check for valid file.
 if [[ ! -f ${url_file} ]]; then
-  echo "\n${ts_b}${tc_y}Specified URL file \"${url_file}\" does not exist or is not a file.${t_res}\n\n${usage}" >&2;
+  echo "\n${ts_b}${tc_y}Specified URL file \"${url_file}\" does not exist or is not a file.${t_res}\n" >&2;
+  echo "${usage}" >&2;
   exit 1;
 fi
 
 # Check that we have links to work with.
 if [[ $(grep -cvE '^$|^[#;]' "${url_file}") -eq 0 ]]; then
-  echo "\n${ts_b}${tc_y}Specified URL file \"${url_file}\" does not contain any repositories URLs.${t_res}\n\n${usage}" >&2;
+  echo "\n${ts_b}${tc_y}Specified URL file \"${url_file}\" does not contain any repositories URLs.${t_res}\n" >&2;
+  echo "${usage}" >&2;
   exit 1;
 fi
 
