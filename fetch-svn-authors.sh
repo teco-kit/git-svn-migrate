@@ -117,7 +117,7 @@ until [[ -z "$1" ]]; do
 
     h|help )         echo "${help}" | less >&2; exit;;
 
-    * )              echo "\n${ts_b}${tc_y}Unknown option: ${option}${t_res}\n\n${usage}" >&2;
+    * )              echo -e "\n${ts_b}${tc_y}Unknown option: ${option}${t_res}\n\n${usage}" >&2;
                      exit 1;
                      ;;
   esac
@@ -131,21 +131,21 @@ if [[ ${destination} != '' ]]; then destination="${dir}/${destination}"; fi
 
 # Check for required parameters.
 if [[ ${url_file} == '' ]]; then
-  echo "\n${ts_b}${tc_y}No URL file specified.${t_res}\n" >&2;
+  echo -e "\n${ts_b}${tc_y}No URL file specified.${t_res}\n" >&2;
   echo "${usage}" >&2;
   exit 1;
 fi
 
 # Check for valid file.
 if [[ ! -f ${url_file} ]]; then
-  echo "\n${ts_b}${tc_y}Specified URL file \"${url_file}\" does not exist or is not a file.${t_res}\n" >&2;
+  echo -e "\n${ts_b}${tc_y}Specified URL file \"${url_file}\" does not exist or is not a file.${t_res}\n" >&2;
   echo "${usage}" >&2;
   exit 1;
 fi
 
 # Check that we have links to work with.
 if [[ $(grep -cvE '^$|^[#;]' "${url_file}") -eq 0 ]]; then
-  echo "\n${ts_b}${tc_y}Specified URL file \"${url_file}\" does not contain any repositories URLs.${t_res}\n" >&2;
+  echo -e "\n${ts_b}${tc_y}Specified URL file \"${url_file}\" does not contain any repositories URLs.${t_res}\n" >&2;
   echo "${usage}" >&2;
   exit 1;
 fi
@@ -172,7 +172,7 @@ do
     echo "   ${ts_b}${tc_g}Done.${t_res}" >&2;
   else
     echo "   ${ts_b}${tc_r}Failed.${t_res}" >&2;
-    #echo "${ts_b}${tc_r}${res}${t_res}\n" >&2;
+    #echo -e "${ts_b}${tc_r}${res}${t_res}\n" >&2;
   fi
 done < <(grep -vE '^$|^[#;]' "${url_file}" | nl -w14 -nrz -s, | sort -t, -k2 -u | sort -n | cut -d, -f2-)
 # Unique entries: http://stackoverflow.com/a/30906433
@@ -183,7 +183,7 @@ echo -n "${ts_bu}Authors list${t_res}" >&2;
 
 # Do we have any valid entries?
 if [[ ! -f ${tmp_file} ]]; then
-  echo "\n${ts_b}${tc_y}No Authors found.${t_res}\n" >&2;
+  echo -e "\n${ts_b}${tc_y}No Authors found.${t_res}\n" >&2;
   exit 1;
 fi
 

@@ -194,25 +194,25 @@ done
 
 # Check for required parameters.
 if [[ ${url_file} == '' || ${authors_file} == '' ]]; then
-  echo "\n${ts_b}${tc_y}Both URL file and authors file must be specified.${t_res}\n" >&2;
+  echo -e "\n${ts_b}${tc_y}Both URL file and authors file must be specified.${t_res}\n" >&2;
   echo "${usage}" >&2;
   exit 1;
 fi
 # Check for valid files.
 if [[ ! -f ${url_file} ]]; then
-  echo "\n${ts_b}${tc_y}Specified URL file \"${url_file}\" does not exist or is not a file.${t_res}\n" >&2;
+  echo -e "\n${ts_b}${tc_y}Specified URL file \"${url_file}\" does not exist or is not a file.${t_res}\n" >&2;
   echo "${usage}" >&2;
   exit 1;
 fi
 if [[ ! -f ${authors_file} ]]; then
-  echo "\n${ts_b}${tc_y}Specified authors file \"${authors_file}\" does not exist or is not a file.${t_res}\n" >&2;
+  echo -e "\n${ts_b}${tc_y}Specified authors file \"${authors_file}\" does not exist or is not a file.${t_res}\n" >&2;
   echo "${usage}" >&2;
   exit 1;
 fi
 
 # Check that we have links to work with.
 if [[ $(grep -cvE '^$|^[#;]' "${url_file}") -eq 0 ]]; then
-  echo "\n${ts_b}${tc_y}Specified URL file \"${url_file}\" does not contain any repositories URLs.${t_res}\n" >&2;
+  echo -e "\n${ts_b}${tc_y}Specified URL file \"${url_file}\" does not contain any repositories URLs.${t_res}\n" >&2;
   echo "${usage}" >&2;
   exit 1;
 fi
@@ -226,7 +226,7 @@ destination=$(cd "${destination}"; pwd); #Absolute path.
 
 # Ensure temporary repository location is empty.
 if [[ -e ${tmp_destination} ]] && [[ ${force} -eq 0 ]]; then
-  echo "\n${ts_b}${tc_y}Temporary repository location \"${tmp_destination}\" already exists. Exiting.${t_res}\n" >&2;
+  echo -e "\n${ts_b}${tc_y}Temporary repository location \"${tmp_destination}\" already exists. Exiting.${t_res}\n" >&2;
   # todo "You may override with --force flag!"
   exit 1;
 fi
