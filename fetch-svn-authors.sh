@@ -13,6 +13,7 @@ destination='';
 # Text style and color variables.
 ts_u=$(tput sgr 0 1); # underline
 ts_b=$(tput bold);    # bold
+ts_bu=${ts_u}${ts_b}; # bold & underline
 t_res=$(tput sgr0);   # reset
 tc_r=$(tput setaf 1); # red
 tc_g=$(tput setaf 2); # green
@@ -86,7 +87,7 @@ until [[ -z "$1" ]]; do
     fi
   else
     # Any argument given is assumed to be the destination folder.
-    tmp="destination=$option";
+    tmp="destination=${option}";
   fi
   parameter=${tmp%%=*}; # Extract option's name.
   value=${tmp##*=};     # Extract option's value.
@@ -113,7 +114,7 @@ until [[ -z "$1" ]]; do
 
     h|help )         echo "${help}" | less >&2; exit;;
 
-    * )              echo "\n${ts_b}${tc_y}Unknown option: $option${t_res}\n\n${usage}" >&2;
+    * )              echo "\n${ts_b}${tc_y}Unknown option: ${option}${t_res}\n\n${usage}" >&2;
                      exit 1;
                      ;;
   esac
@@ -172,7 +173,7 @@ done < <(grep -vE '^$|^[#;]' "${url_file}" | nl -w14 -nrz -s, | sort -t, -k2 -u 
 
 echo >&2;
 
-echo -n "${ts_u}${ts_b}Authors list${t_res}" >&2;
+echo -n "${ts_bu}Authors list${t_res}" >&2;
 
 # Do we have any valid entries?
 if [[ ! -f ${tmp_file} ]]; then

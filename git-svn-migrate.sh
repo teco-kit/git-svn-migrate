@@ -22,6 +22,7 @@ stderr_file="${dir}/log/$(date +%Y%m%d%H%M%S).std.err";
 # Text style and color variables.
 ts_u=$(tput sgr 0 1); # underline
 ts_b=$(tput bold);    # bold
+ts_bu=${ts_u}${ts_b}; # bold & underline
 t_res=$(tput sgr0);   # reset
 tc_r=$(tput setaf 1); # red
 tc_g=$(tput setaf 2); # green
@@ -81,7 +82,7 @@ DESCRIPTION
         By default this script is rather verbose since it outputs each revision
         number as it is processed from Subversion. Since conversion can sometimes
         take hours to complete, this output can be useful. However, this option
-        will surpress that output.
+        will suppress that output.
 
     --no-metadata
         By default, all converted log messages will include a line starting with
@@ -112,6 +113,10 @@ SEE ALSO
     svn-lookup-author.sh
 EOF_HELP
 );
+
+_date() {
+  echo $(date +%d\.%m\.%Y\ %H\:%M\:%S);
+}
 
 # Truly quiet git execution. (idea from http://stackoverflow.com/a/8944284)
 quiet_git() {
@@ -211,13 +216,14 @@ fi
 echo >&2;
 
 # Process each URL in the repository list.
-tmp_destination="/tmp/tmp-git-repo-$RANDOM";
-mkdir -p "$destination";
-destination=$(cd "$destination"; pwd); #Absolute path.
+tmp_destination="/tmp/tmp-git-repo-${RANDOM}";
+mkdir -p "${destination}";
+destination=$(cd "${destination}"; pwd); #Absolute path.
 
 # Ensure temporary repository location is empty.
 if [[ -e ${tmp_destination} ]] && [[ ${force} -eq 0 ]]; then
   echo "\n${ts_b}${tc_y}Temporary repository location \"${tmp_destination}\" already exists. Exiting.${t_res}\n" >&2;
+  # todo "You may override with --force flag!"
   exit 1;
 fi
 
@@ -228,12 +234,14 @@ cnt_total=$(grep -vcE '^$|^[#;]' "${url_file}");
 cnt_cur=0;
 cnt_pass=0;
 cnt_skip=0;
+cnt_fail=0;
 
 while IFS= read -r line
 do
   ((cnt_cur++));
 
   skipping=0;
+  failing=0;
 
   # Check for 2-field format:  Name [tab] URL
   name=$(echo ${line} | awk '{print $1}');
@@ -246,12 +254,13 @@ do
   fi
 
   # The directory where the new git repository is going.
-  destination_git="$destination/${name}.git";
+  destination_git="${destination}/${name}.git";
 
   # Process each Subversion URL.
   echo >&2;
-  echo "( ${ts_b}$cnt_cur${t_res} / ${cnt_total} ) At $(date)..." >&2;
-  echo "Processing ${ts_b}\"${name}\"${t_res} repository:" >&2;
+  echo "( ${ts_b}${cnt_cur}${t_res} / ${cnt_total} ) Started at $(_date)." >&2;
+  #echo "Processing ${ts_b}\"${name}\"${t_res} repository:" >&2;
+  echo "${ts_u}Processing ${ts_b}\"${name}\"${t_res}:" >&2;
   echo " < ${url}" >&2;
   echo " > ${destination_git}" >&2;
   echo >&2;
@@ -259,7 +268,7 @@ do
   # Init the final bare repository.
   # Ensure temporary repository location is empty.
   if [[ -e "${destination_git}" ]] && [[ ${force} -eq 0 ]]; then
-    echo " - Repository location \"${destination_git}\" already exists. Skipping." >&2;
+    echo " - Repository location \"${destination_git}\" already exists.   Skipped." >&2;
     skipping=1;
   fi
 
@@ -277,6 +286,7 @@ do
       echo_done;
     else
       skipping=1;
+      failing=1;
       echo_done "Failed.";
     fi
   fi
@@ -313,7 +323,7 @@ do
     ${_git} for-each-ref --format='%(refname)' refs/heads | grep '@[0-9][0-9]*' | cut -d / -f 3- |
     while read ref
     do
-      ${_git} branch -D "$ref";
+      ${_git} branch -D "${ref}";
     done
     echo_done;
 
@@ -322,25 +332,35 @@ do
     ${_git} for-each-ref --format='%(refname)' refs/heads/tags | cut -d / -f 4 |
     while read ref
     do
-      ${_git} tag -a "$ref" -m "Convert \"$ref\" to a proper git tag." "refs/heads/tags/$ref";
-      ${_git} branch -D "tags/$ref";
+      ${_git} tag -a "${ref}" -m "Convert \"${ref}\" to a proper git tag." "refs/heads/tags/${ref}";
+      ${_git} branch -D "tags/${ref}";
     done
     echo_done;
     echo >&2;
 
-    echo "Conversion of \"${name}\" completed at $(date)." >&2;
+    echo "${ts_b}${tc_g}pass${t_res} - Conversion of \"${name}\" completed at $(_date)." >&2;
     ((cnt_pass++));
   else
     echo >&2;
-    echo "Conversion of \"${name}\" skipped at $(date)." >&2;
-    ((cnt_skip++));
+    if [[ ${failing} -ne 0 ]]; then
+      echo "${ts_b}${tc_r}fail${t_res} - Conversion of \"${name}\" failed at $(_date)." >&2;
+      ((cnt_fail++));
+    else
+      echo "${ts_b}${tc_c}skip${t_res} - Conversion of \"${name}\" skipped at $(_date)." >&2;
+      ((cnt_skip++));
+    fi
   fi
 done < <(grep -vE '^$|^[#;]' "${url_file}" | nl -w14 -nrz -s, | sort -t, -k2 -u | sort -n | cut -d, -f2-)
 # http://stackoverflow.com/a/8197412
 # http://mywiki.wooledge.org/BashFAQ/024 (ProcessSubstitution)
 
 echo >&2;
-echo "All done! Total: ${cnt_total} (${cnt_pass} passed, ${cnt_skip} skipped, $((cnt_total - cnt_cur)) ignored)" >&2
+echo "${ts_bu}All done!${t_res}" >&2;
+echo "Total:   ${ts_b}${cnt_total}${t_res}" >&2;
+echo "Passed:  ${ts_b}${tc_g}${cnt_pass}${t_res}" >&2;
+echo "Failed:  ${ts_b}${tc_r}${cnt_fail}${t_res}" >&2;
+echo "Skipped: ${ts_b}${tc_c}${cnt_skip}${t_res}" >&2;
+echo "Ignored: ${ts_b}${tc_s}$((cnt_total - cnt_cur))${t_res}" >&2
 echo >&2;
 if [[ ${cnt_skip} -ne 0 ]]; then
   echo "(${cnt_skip} conversions were skipped, check the output and logs)" >&2
