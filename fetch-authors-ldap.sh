@@ -1,4 +1,11 @@
- #!/bin/sh
+ #!/bin/bash
+script=$(basename $0);
+
+[ $# == 2 ] || { cat <<EOF_USAGE
+USAGE: ${script} <ldapserver> <base> 
+EOF_USAGE
+exit 1;}
+
  ldapsearch -LLL -x -H ldap://$1 -b $2  uid cn mail|\
  awk -F': ' '
  /^cn: .* .+$/{cn=$2;next} 

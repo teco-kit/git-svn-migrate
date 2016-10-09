@@ -8,13 +8,12 @@ The basic steps to converting a list of Subversion repositories into Git
 repositories are the following:
 
 1. Create a list of Subversion repositories to convert.
-
-2. Create a list of transformations for Subversion usernames to Git committers.
    Run:
-   ./fetch-svn-authors.sh  --url-file=[filename] > [output file for raw authors]
+   ./fetch-projects.sh <svn_base>
 
-   Then edit the raw list of Subversion usernames to provide full names and
-   emails suitable for Git committers.
+2. Create a list of transformations from ldap 
+   Run:
+   ./fetch-authors-ldap.sh <ldap> <base> 
 
 3. Convert the Subversion repositories into bare Git repositories with:
    ./git-svn-migrate.sh --url-file=[filename] --authors-file=[filename] [destination folder]
@@ -25,11 +24,8 @@ http://john.albin.net/git/git-svn-migrate
 http://john.albin.net/git/convert-subversion-to-git
 
 
-USAGE
+Repository List Format
 -----
-
-1. Create a list of Subversion repositories to convert.
-
 The repository list should just be a plain text file with one repository per
 line. Each line can be in one of two formats. The basic format is simply the
 repository's URL by itself:
@@ -57,35 +53,9 @@ example above, we're using the second-to-last part of the URL instead of the
 last part of the URL. In the second example, we're just changing the name to all
 lowercase (recommended). And in the final example, move along. Move along.
 
-2. Create a list of transformations for Subversion usernames to Git committers.
 
-Using the repository list created in step 1, run the fetch-svn-authors.sh script
-to create a list of unique usernames for all the commits in your repositories.
-The output of the script should be redirected to a file.
-
-Example (assuming your repository list is in "repository-list.txt"):
-
-  $ ./fetch-svn-authors.sh --url-file=repository-list.txt > author-transform.txt
-
-Edit the raw list of Subversion usernames to provide full names and emails
-suitable for Git committers. The output of the fetch-svn-authors.sh script will
-be of the form:
-  username = username <username>
-You should edit each line to be:
-  username = Full name <email>
-
-For example:
-  change:
-    jwilkins = jwilkins <jwilkins>
-  into:
-    jwilkins = John Albin Wilkins <john@example.org>
-
-You can run "./fetch-svn-authors.sh --help" to get full documentation on the
-options it accepts.
-
-3. Convert the Subversion repositories into bare Git repositories.
-
-Example:
+EXAMPLE
+-----
 
   $ ./git-svn-migrate.sh --url-file=repository-list.txt --authors-file=author-transform.txt /var/git
 
@@ -107,6 +77,9 @@ REQUIREMENTS
 
 - git 1.7 or later
 - Bash shell
+- ldap-search
+- sed
+- awk
 
 
 LICENSE
